@@ -331,7 +331,7 @@
     user-select: none;
   }
 
-  /* Dezente Fußballfeld-Markierungen – nur Optik, keine Spielmechanik. */
+  /* Dezente Fußballfeld-Markierungen – nur Optik, keine Spielmechanik */
   .pitch::before {
     content: "";
     position: absolute;
@@ -489,23 +489,19 @@
     z-index: 3;
     pointer-events: none;
     transform-origin: center;
-    animation: ballArrive 220ms cubic-bezier(0.22, 0.75, 0.3, 1) both;
+  }
+
+  .ball.step-anim {
+    animation: ballArrive 200ms cubic-bezier(0.22, 0.75, 0.3, 1) both;
   }
 
   @keyframes ballArrive {
     from {
-      opacity: 0.35;
+      opacity: 0.45;
       transform: translate(
         calc(var(--ball-from-c, 0) * 100%),
         calc(var(--ball-from-r, 0) * 100%)
-      ) scale(0.82);
-    }
-    65% {
-      opacity: 1;
-      transform: translate(
-        calc(var(--ball-from-c, 0) * 18%),
-        calc(var(--ball-from-r, 0) * 18%)
-      ) scale(1.05);
+      ) scale(0.86);
     }
     to {
       opacity: 1;
@@ -684,14 +680,14 @@
     gap: 8px;
   }
 
-  /* Handy: Spielfeld bekommt deutlich mehr Platz, ohne die Spielmechanik zu ändern. */
+  /* Handy: Spielfeld bekommt deutlich mehr Platz, ohne die Spielmechanik zu ändern */
   @media (max-width: 700px) {
     html, body {
       overflow: hidden;
     }
 
     .app {
-      padding: 4px 5px;
+      padding: max(4px, env(safe-area-inset-top)) max(5px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-right));
       gap: 4px;
     }
 
@@ -818,8 +814,8 @@
     }
 
     .pitch {
-      width: min(92vw, calc(100cqh * 7 / 9));
-      max-width: 92vw;
+      width: min(100cqw, calc(100cqh * 7 / 9));
+      max-width: 100%;
       border-width: 2px;
       border-radius: 8px;
     }
@@ -943,7 +939,7 @@
       <ul>
         <li><strong>Spielfeld (7×9):</strong> Gemeinsamer Ball (⚽) startet in der Mitte (D5). Blau greift nach oben aufs rote Tor (D9) an, Rot nach unten aufs blaue Tor (D1).</li>
         <li><strong>Abwehr aufstellen &amp; Mauerverbot:</strong> Beide Seiten platzieren je <strong>6 Abwehrspieler abwechselnd</strong>. Die Abstandsregel gilt nur zwischen Abwehrspielern <strong>des eigenen Teams</strong>: Eigene Spieler dürfen weder direkt nebeneinander noch diagonal nebeneinander stehen. Ein gegnerischer Abwehrspieler darf dagegen direkt neben oder diagonal zu einem Spieler des anderen Teams stehen.</li>
-        <li><strong>Abwechselnd würfeln &amp; ziehen:</strong> Nach dem Wurf (1–6) darf die gesamte Augenzahl flexibel in beliebigen Kombinationen aus <strong>geradeaus, links und rechts</strong> ausgespielt werden (z. B. bei 4: 3 vor + 1 seitlich). Kein Feld wird im selben Zug zweimal betreten.</li>
+        <li><strong>Abwechselnd würfeln &amp; ziehen:</strong> Nach dem Wurf (1–6) darf die gesamte Augenzahl flexibel in beliebigen Kombinationen aus <strong>geradeaus, rückwärts, links und rechts</strong> ausgespielt werden (z. B. bei 4: 3 vor + 1 seitlich). Kein Feld wird im selben Zug zweimal betreten.</li>
         <li><strong>Abwehr verschieben:</strong> Nach einem Zug darf die Gegenseite jeden ihrer 6 Abwehrspieler um <strong>maximal 1 Feld orthogonal</strong> (vor, zurück, links, rechts) verschieben (Uhr pausiert, Mauerverbot bleibt aktiv).</li>
         <li><strong>Taktisches Aus:</strong> Ein Zug ins Aus wechselt den Ballbesitz / das Zugrecht wie im Fußball.</li>
         <li><strong>Sieg nach Zeit:</strong> Wer nach Ablauf der Spieluhr mehr Tore hat, gewinnt (bei Gleichstand entscheidet das <strong>Golden Goal</strong>).</li>
@@ -1012,8 +1008,8 @@
   const ROWS = 9;
   const COLS = 7;
   const BALL_START = { r: 4, c: 3 }; // D5
-  const GOAL_RED = { r: 0, c: 3 };   // D9 (Ziel für Blau)
-  const GOAL_BLUE = { r: 8, c: 3 };  // D1 (Ziel für Rot)
+  const GOAL_RED = { r: 0, c: 3 };   // D9 (Eigenes Tor für Rot, Ziel für Blau)
+  const GOAL_BLUE = { r: 8, c: 3 };  // D1 (Eigenes Tor für Blau, Ziel für Rot)
   const DEFENDERS_PER_TEAM = 6;
   const STORAGE_KEY = "vector_ball_bundesliga_v1";
 
@@ -1125,8 +1121,6 @@
     if (isSamePos({ r, c }, state.ball)) return false;
     if (getDefenderAt(r, c)) return false;
 
-    // Die Abstandsregel gilt nur zwischen Abwehrspielern desselben Teams.
-    // Ein gegnerischer Abwehrspieler darf direkt neben oder diagonal stehen.
     let teamForRule = null;
     if (state.phase === "setup_blue") teamForRule = "blue";
     if (state.phase === "setup_red") teamForRule = "red";
@@ -1279,6 +1273,21 @@
     renderBoard();
   }
 
+  function syncSettingButtons() {
+    document.querySelectorAll(".choice-btn[data-setting]").forEach(btn => {
+      const prop = btn.getAttribute("data-setting");
+      const val = btn.getAttribute("data-value");
+      let active = false;
+      if (prop === "mode") active = state.mode === val;
+      if (prop === "difficulty") active = state.difficulty === val;
+      if (prop === "duration") active = String(state.duration) === val;
+      btn.classList.toggle("active", active);
+      if (prop === "difficulty") {
+        btn.disabled = state.mode !== "pve";
+      }
+    });
+  }
+
   function resetMatch() {
     clearTimers();
     if (cheerTimeoutId) {
@@ -1286,9 +1295,6 @@
       cheerTimeoutId = null;
     }
     goalBanner.classList.remove("show");
-    state.mode = state.mode || "pve";
-    state.difficulty = state.difficulty || "amateur";
-    state.duration = state.duration || 120;
     state.timeLeft = state.duration;
     state.phase = "setup_blue";
     state.turn = "blue";
@@ -1306,6 +1312,7 @@
     diceValueEl.textContent = "-";
     stepsLeftEl.textContent = "0 Sch.";
     setStatus("Blau ist dran: Abwehrspieler 1 aufstellen.");
+    syncSettingButtons();
     updateHud();
     renderBoard();
   }
@@ -1317,6 +1324,7 @@
     const forwardDr = state.turn === "blue" ? -1 : 1;
     const candidates = [
       { r: state.ball.r + forwardDr, c: state.ball.c },
+      { r: state.ball.r - forwardDr, c: state.ball.c },
       { r: state.ball.r, c: state.ball.c - 1 },
       { r: state.ball.r, c: state.ball.c + 1 }
     ];
@@ -1348,7 +1356,6 @@
   function prepareRollPhase(delayMs = 420) {
     state.dice = null;
     state.stepsLeft = 0;
-    state.lastBallMove = null;
     state.selectedDefId = null;
     state.visitedThisTurn.clear();
     if (state.phase !== "golden_goal") {
@@ -1376,9 +1383,9 @@
     const nextTeam = scoringTeam === "blue" ? "red" : "blue";
     setStatus(`TOR für ${teamLabel}! Stand ${state.score.blue}:${state.score.red} – Anstoß in der Mitte.`);
     state.ball = { ...BALL_START };
+    state.lastBallMove = null;
     state.dice = null;
     state.stepsLeft = 0;
-    state.lastBallMove = null;
     state.visitedThisTurn.clear();
     state.turn = nextTeam;
     state.phase = "roll";
@@ -1401,7 +1408,7 @@
     state.defenders[defenderTeam].forEach(d => { d.moved = false; });
 
     const defName = defenderTeam === "blue" ? "Blau" : "Rot";
-    setStatus(`${defName}: Verschiebe Abwehr (max. 1 Feld orthogonal, Abstand zu eigenen Spielern halten) oder „Zug fertig“.`);
+    setStatus(`${defName}: Verschiebe Abwehr (max. 1 Feld orthogonal, Team-Abstand halten) oder „Zug fertig“.`);
     updateHud();
     renderBoard();
 
@@ -1444,6 +1451,7 @@
     const val = Math.floor(Math.random() * 6) + 1;
     state.dice = val;
     state.stepsLeft = val;
+    state.lastBallMove = null;
     state.visitedThisTurn = new Set([keyOf(state.ball.r, state.ball.c)]);
     if (state.phase !== "golden_goal") {
       state.phase = "move";
@@ -1462,7 +1470,7 @@
       return;
     }
 
-    setStatus(`${state.turn === "blue" ? "Blau" : "Rot"} würfelt ${val}: Ziehe ${val} Felder (vor, links, rechts).`);
+    setStatus(`${state.turn === "blue" ? "Blau" : "Rot"} würfelt ${val}: Ziehe ${val} Felder (vor, zurück, links, rechts).`);
     updateHud();
     renderBoard();
   }
@@ -1471,12 +1479,12 @@
     const valid = getValidBallMoves().some(m => m.r === r && m.c === c);
     if (!valid) return;
 
-    const previousBall = { ...state.ball };
-    state.lastBallMove = {
-      r: previousBall.r - r,
-      c: previousBall.c - c
-    };
+    const prev = { ...state.ball };
     state.ball = { r, c };
+    state.lastBallMove = {
+      dr: prev.r - r,
+      dc: prev.c - c
+    };
     state.stepsLeft -= 1;
     state.visitedThisTurn.add(keyOf(r, c));
 
@@ -1510,8 +1518,46 @@
     }
   }
 
+  function advanceAlternatingSetup() {
+    const blueCount = state.defenders.blue.length;
+    const redCount = state.defenders.red.length;
+
+    if (blueCount >= DEFENDERS_PER_TEAM && redCount >= DEFENDERS_PER_TEAM) {
+      state.phase = "roll";
+      state.turn = "blue";
+      setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
+      updateHud();
+      renderBoard();
+      return;
+    }
+
+    if (blueCount <= redCount) {
+      state.phase = "setup_blue";
+      state.turn = "blue";
+      setStatus(`Blau ist dran: Abwehrspieler ${blueCount + 1}/${DEFENDERS_PER_TEAM} aufstellen.`);
+      updateHud();
+      renderBoard();
+    } else {
+      state.phase = "setup_red";
+      state.turn = "red";
+      setStatus(`Rot ist dran: Abwehrspieler ${redCount + 1}/${DEFENDERS_PER_TEAM} aufstellen.`);
+      updateHud();
+      renderBoard();
+      if (state.mode === "pve") {
+        aiTimeoutId = setTimeout(runAiSetupStep, 260);
+      }
+    }
+  }
+
   function handleSetupClick(r, c) {
-    if (!canPlaceDefenderAt(r, c)) return;
+    if (state.phase === "setup_red" && state.mode === "pve") return;
+
+    if (!canPlaceDefenderAt(r, c)) {
+      if (!isReservedCell(r, c) && !getDefenderAt(r, c) && violatesWallRule(r, c, null, state.phase === "setup_blue" ? "blue" : "red")) {
+        setStatus("Mauerverbot: Eigene Abwehrspieler dürfen nicht direkt oder diagonal nebeneinander stehen!");
+      }
+      return;
+    }
 
     if (state.phase === "setup_blue") {
       if (state.defenders.blue.length >= DEFENDERS_PER_TEAM) return;
@@ -1521,26 +1567,7 @@
         c,
         moved: false
       });
-
-      if (state.defenders.blue.length === DEFENDERS_PER_TEAM) {
-        if (state.mode === "pve") {
-          state.phase = "setup_red";
-          setStatus("KI: Abwehrspieler wird aufgestellt …");
-          aiTimeoutId = setTimeout(runAiSetup, 260);
-        } else {
-          state.phase = "setup_red";
-          setStatus("Rot ist dran: 1 Abwehrspieler aufstellen.");
-        }
-      } else {
-        // Immer abwechselnd: nach jedem blauen Spieler kommt Rot.
-        state.phase = "setup_red";
-        setStatus(state.mode === "pve" ? "KI: Abwehrspieler wird aufgestellt …" : "Rot ist dran: 1 Abwehrspieler aufstellen.");
-        if (state.mode === "pve") {
-          aiTimeoutId = setTimeout(runAiSetup, 260);
-        }
-      }
-      updateHud();
-      renderBoard();
+      advanceAlternatingSetup();
       return;
     }
 
@@ -1552,17 +1579,7 @@
         c,
         moved: false
       });
-
-      if (state.defenders.red.length === DEFENDERS_PER_TEAM) {
-        state.phase = "roll";
-        state.turn = "blue";
-        setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
-      } else {
-        state.phase = "setup_blue";
-        setStatus(`Blau ist dran: Abwehrspieler ${state.defenders.blue.length + 1} aufstellen.`);
-      }
-      updateHud();
-      renderBoard();
+      advanceAlternatingSetup();
     }
   }
 
@@ -1607,56 +1624,47 @@
     }
   }
 
-  function runAiSetup() {
+  function runAiSetupStep() {
     if (state.phase !== "setup_red" || state.defenders.red.length >= DEFENDERS_PER_TEAM) return;
 
+    // Rots eigenes Tor liegt oben bei GOAL_RED (0, 3); Ball startet bei (4, 3).
+    // (1, 3) und (2, 3) blocken den direkten 4er-Durchmarsch von der Mitte ins Tor, ohne eigenes Mauerverbot.
     const byDiff = {
-      hobby:   [{ r: 1, c: 0 }, { r: 1, c: 3 }, { r: 1, c: 6 }, { r: 6, c: 0 }, { r: 6, c: 3 }, { r: 6, c: 6 }],
-      amateur: [{ r: 2, c: 1 }, { r: 2, c: 4 }, { r: 5, c: 2 }, { r: 5, c: 5 }, { r: 7, c: 1 }, { r: 7, c: 4 }],
-      profi:   [{ r: 2, c: 2 }, { r: 2, c: 5 }, { r: 5, c: 1 }, { r: 5, c: 4 }, { r: 7, c: 2 }, { r: 7, c: 5 }]
+      hobby:   [{ r: 1, c: 0 }, { r: 1, c: 6 }, { r: 3, c: 1 }, { r: 3, c: 5 }, { r: 6, c: 0 }, { r: 6, c: 6 }],
+      amateur: [{ r: 1, c: 3 }, { r: 3, c: 2 }, { r: 3, c: 4 }, { r: 2, c: 1 }, { r: 2, c: 5 }, { r: 5, c: 3 }],
+      profi:   [{ r: 1, c: 3 }, { r: 3, c: 2 }, { r: 3, c: 4 }, { r: 2, c: 1 }, { r: 2, c: 5 }, { r: 5, c: 3 }]
     };
     const preferred = byDiff[state.difficulty] || byDiff.amateur;
-    let placed = false;
 
+    let chosen = null;
     for (const pos of preferred) {
       if (canPlaceDefenderAt(pos.r, pos.c)) {
-        state.defenders.red.push({
-          id: `r${state.defenders.red.length + 1}`,
-          r: pos.r,
-          c: pos.c,
-          moved: false
-        });
-        placed = true;
+        chosen = pos;
         break;
       }
     }
 
-    if (!placed) {
-      for (let r = 0; r < ROWS && !placed; r++) {
-        for (let c = 0; c < COLS && !placed; c++) {
-          if (canPlaceDefenderAt(r, c)) {
-            state.defenders.red.push({
-              id: `r${state.defenders.red.length + 1}`,
-              r,
-              c,
-              moved: false
-            });
-            placed = true;
+    if (!chosen) {
+      for (let rIdx = 0; rIdx < ROWS && !chosen; rIdx++) {
+        for (let cIdx = 0; cIdx < COLS; cIdx++) {
+          if (canPlaceDefenderAt(rIdx, cIdx)) {
+            chosen = { r: rIdx, c: cIdx };
+            break;
           }
         }
       }
     }
 
-    if (state.defenders.red.length >= DEFENDERS_PER_TEAM) {
-      state.phase = "roll";
-      state.turn = "blue";
-      setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
-    } else {
-      state.phase = "setup_blue";
-      setStatus(`Blau ist dran: Abwehrspieler ${state.defenders.blue.length + 1} aufstellen.`);
+    if (chosen) {
+      state.defenders.red.push({
+        id: `r${state.defenders.red.length + 1}`,
+        r: chosen.r,
+        c: chosen.c,
+        moved: false
+      });
     }
-    updateHud();
-    renderBoard();
+
+    advanceAlternatingSetup();
   }
 
   function runAiTurn() {
@@ -1668,6 +1676,117 @@
     }
   }
 
+  // Prüft, ob von `startPos` in höchstens `maxSteps` Zügen ein Weg zu `GOAL_BLUE` existiert.
+  function canReachGoalWithin(startPos, maxSteps) {
+    if (startPos.r === GOAL_BLUE.r && startPos.c === GOAL_BLUE.c) return true;
+    const minNeeded = Math.abs(GOAL_BLUE.r - startPos.r) + Math.abs(GOAL_BLUE.c - startPos.c);
+    if (maxSteps <= 0 || minNeeded > maxSteps) return false;
+
+    const queue = [{ r: startPos.r, c: startPos.c, steps: 0 }];
+    const seen = new Set([...state.visitedThisTurn, keyOf(startPos.r, startPos.c)]);
+
+    while (queue.length > 0) {
+      const cur = queue.shift();
+      if (cur.steps >= maxSteps) continue;
+
+      const neighbors = [
+        { r: cur.r + 1, c: cur.c },
+        { r: cur.r - 1, c: cur.c },
+        { r: cur.r, c: cur.c - 1 },
+        { r: cur.r, c: cur.c + 1 }
+      ];
+
+      for (const nxt of neighbors) {
+        if (nxt.r < 0 || nxt.r >= ROWS || nxt.c < 0 || nxt.c >= COLS) continue;
+        if (nxt.r === GOAL_BLUE.r && nxt.c === GOAL_BLUE.c) return true;
+        if (getDefenderAt(nxt.r, nxt.c)) continue;
+        const k = keyOf(nxt.r, nxt.c);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        queue.push({ r: nxt.r, c: nxt.c, steps: cur.steps + 1 });
+      }
+    }
+    return false;
+  }
+
+  // Gibt den nächsten Schritt auf dem kürzesten Weg zu `GOAL_BLUE` zurück, falls innerhalb `maxSteps` erreichbar.
+  function nextStepTowardGoal(startPos, maxSteps) {
+    const validFirst = getValidBallMoves();
+    if (validFirst.length === 0 || maxSteps <= 0) return null;
+
+    const directGoal = validFirst.find(m => m.r === GOAL_BLUE.r && m.c === GOAL_BLUE.c);
+    if (directGoal) return directGoal;
+
+    const minNeeded = Math.abs(GOAL_BLUE.r - startPos.r) + Math.abs(GOAL_BLUE.c - startPos.c);
+    if (minNeeded > maxSteps) return null;
+
+    let bestFirst = null;
+    let bestPathLen = Infinity;
+
+    for (const firstMove of validFirst) {
+      if (firstMove.r === GOAL_BLUE.r && firstMove.c === GOAL_BLUE.c) return firstMove;
+      const queue = [{ r: firstMove.r, c: firstMove.c, steps: 1 }];
+      const seen = new Set([...state.visitedThisTurn, keyOf(firstMove.r, firstMove.c)]);
+
+      while (queue.length > 0) {
+        const cur = queue.shift();
+        if (cur.steps >= maxSteps) continue;
+
+        const neighbors = [
+          { r: cur.r + 1, c: cur.c },
+          { r: cur.r - 1, c: cur.c },
+          { r: cur.r, c: cur.c - 1 },
+          { r: cur.r, c: cur.c + 1 }
+        ];
+
+        for (const nxt of neighbors) {
+          if (nxt.r < 0 || nxt.r >= ROWS || nxt.c < 0 || nxt.c >= COLS) continue;
+          if (getDefenderAt(nxt.r, nxt.c)) continue;
+          const k = keyOf(nxt.r, nxt.c);
+          if (seen.has(k)) continue;
+          seen.add(k);
+          if (nxt.r === GOAL_BLUE.r && nxt.c === GOAL_BLUE.c) {
+            if (cur.steps + 1 < bestPathLen) {
+              bestPathLen = cur.steps + 1;
+              bestFirst = firstMove;
+            }
+            break;
+          }
+          queue.push({ r: nxt.r, c: nxt.c, steps: cur.steps + 1 });
+        }
+      }
+    }
+
+    return bestFirst;
+  }
+
+  function scoreAiAttackMove(pos) {
+    if (pos.r === GOAL_BLUE.r && pos.c === GOAL_BLUE.c) return -100000;
+
+    const manhattanGoal = Math.abs(GOAL_BLUE.r - pos.r) + Math.abs(GOAL_BLUE.c - pos.c);
+    const goalAlignCol = Math.abs(pos.c - GOAL_BLUE.c);
+    const rowProgress = GOAL_BLUE.r - pos.r;
+    const canScoreNow = canReachGoalWithin(pos, Math.max(0, state.stepsLeft - 1));
+
+    let defenderPenalty = 0;
+    for (const bDef of state.defenders.blue) {
+      const dist = Math.abs(bDef.r - pos.r) + Math.abs(bDef.c - pos.c);
+      if (dist === 1) defenderPenalty += state.difficulty === "profi" ? 4.2 : 2.6;
+      else if (dist === 2) defenderPenalty += state.difficulty === "profi" ? 1.4 : 0.7;
+    }
+
+    const effectivePenalty = canScoreNow ? 0 : defenderPenalty;
+    const goalShotBonus = canScoreNow ? (state.difficulty === "hobby" ? -12 : -500) : 0;
+
+    if (state.difficulty === "hobby") {
+      return manhattanGoal * 1.4 + goalAlignCol * 0.5 + effectivePenalty * 0.5 + goalShotBonus;
+    }
+    if (state.difficulty === "amateur") {
+      return manhattanGoal * 2.4 + rowProgress * 1.1 + goalAlignCol * 0.85 + effectivePenalty + goalShotBonus;
+    }
+    return manhattanGoal * 3.1 + rowProgress * 1.4 + goalAlignCol * 1.1 + effectivePenalty * 1.15 + goalShotBonus;
+  }
+
   function runAiBallStep() {
     if ((state.phase !== "move" && state.phase !== "golden_goal") || state.turn !== "red") return;
     const moves = getValidBallMoves();
@@ -1676,27 +1795,58 @@
       return;
     }
 
-    if (state.difficulty === "hobby") {
-      const pick = moves[Math.floor(Math.random() * moves.length)];
-      stepBallTo(pick.r, pick.c);
-    } else if (state.difficulty === "amateur") {
-      moves.sort((a, b) => (b.r - Math.abs(b.c - 3) * 0.4) - (a.r - Math.abs(a.c - 3) * 0.4));
-      const pool = moves.slice(0, Math.min(2, moves.length));
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      stepBallTo(pick.r, pick.c);
-    } else {
-      moves.sort((a, b) => {
-        const distA = Math.abs(GOAL_BLUE.r - a.r) + Math.abs(GOAL_BLUE.c - a.c);
-        const distB = Math.abs(GOAL_BLUE.r - b.r) + Math.abs(GOAL_BLUE.c - b.c);
-        if (distA !== distB) return distA - distB;
-        return Math.abs(a.c - 3) - Math.abs(b.c - 3);
-      });
-      stepBallTo(moves[0].r, moves[0].c);
+    const directGoal = moves.find(m => m.r === GOAL_BLUE.r && m.c === GOAL_BLUE.c);
+    if (directGoal) {
+      stepBallTo(directGoal.r, directGoal.c);
+      if (state.stepsLeft > 0 && (state.phase === "move" || state.phase === "golden_goal") && state.turn === "red") {
+        aiTimeoutId = setTimeout(runAiBallStep, 440);
+      }
+      return;
     }
+
+    if (state.difficulty !== "hobby") {
+      const plannedGoalStep = nextStepTowardGoal(state.ball, state.stepsLeft);
+      if (plannedGoalStep) {
+        stepBallTo(plannedGoalStep.r, plannedGoalStep.c);
+        if (state.stepsLeft > 0 && (state.phase === "move" || state.phase === "golden_goal") && state.turn === "red") {
+          aiTimeoutId = setTimeout(runAiBallStep, 440);
+        }
+        return;
+      }
+    }
+
+    moves.sort((a, b) => scoreAiAttackMove(a) - scoreAiAttackMove(b));
+    const pick = state.difficulty === "hobby"
+      ? moves[Math.floor(Math.random() * Math.min(2, moves.length))]
+      : moves[0];
+    stepBallTo(pick.r, pick.c);
 
     if (state.stepsLeft > 0 && (state.phase === "move" || state.phase === "golden_goal") && state.turn === "red") {
       aiTimeoutId = setTimeout(runAiBallStep, 440);
     }
+  }
+
+  // Rots eigenes Tor ist GOAL_RED (oben: Reihe 0, Spalte 3).
+  function scoreAiDefenderPos(pos) {
+    const dBall = Math.abs(pos.r - state.ball.r) + Math.abs(pos.c - state.ball.c);
+    const ownGoalCorridorRow = Math.max(Math.min(state.ball.r, 3), 1);
+    const ownGoalCorridorCol = Math.abs(pos.c - GOAL_RED.c);
+    const rowFromOwnGoal = Math.abs(pos.r - ownGoalCorridorRow);
+    const distToOwnGoal = Math.abs(pos.r - GOAL_RED.r) + Math.abs(pos.c - GOAL_RED.c);
+    const blocksCenterLane = pos.c === GOAL_RED.c && pos.r >= 1 && pos.r <= 3 ? -1.4 : 0;
+
+    if (state.difficulty === "hobby") {
+      return dBall + Math.abs(pos.r - 2) * 0.8 + distToOwnGoal * 0.25;
+    }
+    if (state.difficulty === "amateur") {
+      return dBall * 1.15 + ownGoalCorridorCol * 1.25 + rowFromOwnGoal * 0.95 + distToOwnGoal * 0.4 + blocksCenterLane;
+    }
+    const betweenBallAndOwnGoal =
+      pos.r >= Math.min(state.ball.r, GOAL_RED.r) &&
+      pos.r <= Math.max(state.ball.r, GOAL_RED.r)
+        ? -1.8
+        : 0.65;
+    return dBall * 1.25 + ownGoalCorridorCol * 1.5 + rowFromOwnGoal * 1.05 + distToOwnGoal * 0.45 + betweenBallAndOwnGoal + blocksCenterLane;
   }
 
   function runAiDefenderShift() {
@@ -1704,50 +1854,31 @@
     const defenderTeam = state.turn === "blue" ? "red" : "blue";
     if (defenderTeam !== "red") return;
 
-    const defs = [...state.defenders.red];
-    if (state.difficulty === "profi") {
-      defs.sort((a, b) => {
-        const dA = Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c);
-        const dB = Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c);
-        return dA - dB;
-      });
-    }
+    const defs = [...state.defenders.red].sort((a, b) => {
+      const dA = Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c) + Math.abs(a.r - GOAL_RED.r);
+      const dB = Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c) + Math.abs(b.r - GOAL_RED.r);
+      return dA - dB;
+    });
 
     for (const def of defs) {
       const targets = getValidDefenderTargets(def);
       if (targets.length === 0) continue;
 
       if (state.difficulty === "hobby") {
-        if (Math.random() < 0.65) {
-          const pick = targets[Math.floor(Math.random() * targets.length)];
-          def.r = pick.r;
-          def.c = pick.c;
+        if (Math.random() < 0.7) {
+          targets.sort((a, b) => scoreAiDefenderPos(a) - scoreAiDefenderPos(b));
+          def.r = targets[0].r;
+          def.c = targets[0].c;
           def.moved = true;
         }
-      } else if (state.difficulty === "amateur") {
-        targets.sort((a, b) => {
-          const distA = Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c);
-          const distB = Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c);
-          return distA - distB;
-        });
-        def.r = targets[0].r;
-        def.c = targets[0].c;
-        def.moved = true;
       } else {
-        targets.sort((a, b) => {
-          const scoreA =
-            (Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c)) * 1.2 +
-            (Math.abs(a.r - GOAL_BLUE.r) + Math.abs(a.c - GOAL_BLUE.c)) * 0.8 +
-            Math.abs(a.c - 3) * 0.35;
-          const scoreB =
-            (Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c)) * 1.2 +
-            (Math.abs(b.r - GOAL_BLUE.r) + Math.abs(b.c - GOAL_BLUE.c)) * 0.8 +
-            Math.abs(b.c - 3) * 0.35;
-          return scoreA - scoreB;
-        });
-        def.r = targets[0].r;
-        def.c = targets[0].c;
-        def.moved = true;
+        const currentScore = scoreAiDefenderPos(def);
+        targets.sort((a, b) => scoreAiDefenderPos(a) - scoreAiDefenderPos(b));
+        if (scoreAiDefenderPos(targets[0]) < currentScore - 0.15) {
+          def.r = targets[0].r;
+          def.c = targets[0].c;
+          def.moved = true;
+        }
       }
     }
     completeDefenderShift();
@@ -1761,16 +1892,7 @@
     const diffMap = { hobby: "Hobby", amateur: "Amateur", profi: "Profi" };
     labelBlueEl.textContent = "Blau";
     labelRedEl.textContent = state.mode === "pve" ? `KI (${diffMap[state.difficulty]})` : "Rot";
-    document.querySelectorAll('[data-setting="mode"]').forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.value === state.mode);
-    });
-    document.querySelectorAll('[data-setting="difficulty"]').forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.value === state.difficulty);
-      btn.disabled = state.mode !== "pve";
-    });
-    document.querySelectorAll('[data-setting="duration"]').forEach(btn => {
-      btn.classList.toggle("active", Number(btn.dataset.value) === state.duration);
-    });
+    syncSettingButtons();
 
     boxBlueEl.classList.toggle("active", state.turn === "blue" && state.phase !== "finished");
     boxRedEl.classList.toggle("active", state.turn === "red" && state.phase !== "finished");
@@ -1855,11 +1977,12 @@
         if (state.ball.r === r && state.ball.c === c) {
           const ballEl = document.createElement("span");
           ballEl.className = "ball";
-          ballEl.textContent = "⚽";
           if (state.lastBallMove) {
-            ballEl.style.setProperty("--ball-from-r", state.lastBallMove.r);
-            ballEl.style.setProperty("--ball-from-c", state.lastBallMove.c);
+            ballEl.classList.add("step-anim");
+            ballEl.style.setProperty("--ball-from-r", String(state.lastBallMove.dr));
+            ballEl.style.setProperty("--ball-from-c", String(state.lastBallMove.dc));
           }
+          ballEl.textContent = "⚽";
           cell.appendChild(ballEl);
         }
 
@@ -1869,24 +1992,25 @@
     }
 
     pitchEl.replaceChildren(frag);
-    // Die Animation gehört nur zu dieser einen Neudarstellung des Ballzugs.
     state.lastBallMove = null;
   }
+
+  document.querySelectorAll(".choice-btn[data-setting]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      const prop = btn.getAttribute("data-setting");
+      const val = btn.getAttribute("data-value");
+      if (prop === "mode") state.mode = val;
+      if (prop === "difficulty") state.difficulty = val;
+      if (prop === "duration") state.duration = parseInt(val, 10) || 120;
+      resetMatch();
+    });
+  });
 
   btnRoll.addEventListener("click", rollDice);
   btnOut.addEventListener("click", () => finishTurnAfterMove(true));
   btnDoneMove.addEventListener("click", completeDefenderShift);
   document.getElementById("btnReset").addEventListener("click", resetMatch);
-
-  document.querySelectorAll(".choice-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const setting = btn.dataset.setting;
-      if (setting === "mode") state.mode = btn.dataset.value;
-      if (setting === "difficulty" && state.mode === "pve") state.difficulty = btn.dataset.value;
-      if (setting === "duration") state.duration = Number(btn.dataset.value);
-      resetMatch();
-    });
-  });
 
   document.getElementById("btnRules").addEventListener("click", () => {
     document.getElementById("rulesModal").classList.add("open");

@@ -58,10 +58,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background: linear-gradient(180deg, #18263a, var(--panel));
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 9px;
     padding: 4px 8px;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.22);
   }
 
   .brand {
@@ -160,13 +161,14 @@
   }
 
   .side-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(28,43,64,0.98), rgba(21,32,48,0.98));
+    border: 1px solid rgba(255,255,255,0.13);
     border-radius: 9px;
     padding: 6px 7px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    box-shadow: 0 5px 16px rgba(0,0,0,0.18);
   }
 
   .team-card.blue {
@@ -290,16 +292,49 @@
   }
 
   .pitch {
+    position: relative;
     width: min(100cqw, calc(100cqh * 7 / 9));
     aspect-ratio: 7 / 9;
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     grid-template-rows: repeat(9, 1fr);
-    border: 2.5px solid rgba(255, 255, 255, 0.75);
-    border-radius: 8px;
+    border: 2.5px solid rgba(255, 255, 255, 0.82);
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.52), inset 0 0 0 1px rgba(255,255,255,0.08);
+    background: #1b6337;
     user-select: none;
+  }
+
+  /* Dezente Fußballfeld-Markierungen – nur Optik, keine Spielmechanik. */
+  .pitch::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 24%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(255, 255, 255, 0.42);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .pitch::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.78);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.12);
+    pointer-events: none;
+    z-index: 1;
   }
 
   .cell {
@@ -322,11 +357,11 @@
   }
 
   .cell.even {
-    background: var(--pitch-a);
+    background: linear-gradient(135deg, rgba(255,255,255,0.025), rgba(0,0,0,0.035)), var(--pitch-a);
   }
 
   .cell.odd {
-    background: var(--pitch-b);
+    background: linear-gradient(135deg, rgba(255,255,255,0.025), rgba(0,0,0,0.035)), var(--pitch-b);
   }
 
   .cell.midline {
@@ -425,9 +460,32 @@
   .ball {
     font-size: clamp(1.1rem, 3vw, 1.85rem);
     line-height: 1;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.62));
     z-index: 3;
     pointer-events: none;
+    transform-origin: center;
+    animation: ballArrive 220ms cubic-bezier(0.22, 0.75, 0.3, 1) both;
+  }
+
+  @keyframes ballArrive {
+    from {
+      opacity: 0.35;
+      transform: translate(
+        calc(var(--ball-from-c, 0) * 100%),
+        calc(var(--ball-from-r, 0) * 100%)
+      ) scale(0.82);
+    }
+    65% {
+      opacity: 1;
+      transform: translate(
+        calc(var(--ball-from-c, 0) * 18%),
+        calc(var(--ball-from-r, 0) * 18%)
+      ) scale(1.05);
+    }
+    to {
+      opacity: 1;
+      transform: translate(0, 0) scale(1);
+    }
   }
 
   /* Torjubel-Overlay */
@@ -599,6 +657,141 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+  }
+
+  /* Handy: Spielfeld bekommt deutlich mehr Platz, ohne die Spielmechanik zu ändern. */
+  @media (max-width: 700px) {
+    html, body {
+      overflow: hidden;
+    }
+
+    .app {
+      padding: 4px 5px;
+      gap: 4px;
+    }
+
+    header.topbar {
+      padding: 4px 6px;
+    }
+
+    .brand-sub {
+      display: none;
+    }
+
+    .top-actions {
+      gap: 3px;
+    }
+
+    select.ctrl-select,
+    button.btn {
+      font-size: 0.62rem;
+      padding: 4px 5px;
+    }
+
+    .arena {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 4px;
+    }
+
+    .side-col {
+      flex-direction: row;
+      align-items: stretch;
+      justify-content: stretch;
+      gap: 4px;
+      min-height: 0;
+    }
+
+    .side-col:first-child {
+      grid-row: 1;
+    }
+
+    .side-col:last-child {
+      grid-row: 3;
+    }
+
+    .side-card {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 4px 5px;
+      border-radius: 7px;
+    }
+
+    .side-status {
+      display: none;
+    }
+
+    .team-score {
+      font-size: 1.15rem;
+    }
+
+    .team-name {
+      font-size: 0.68rem;
+    }
+
+    .team-dir {
+      font-size: 0.54rem;
+    }
+
+    .clock-card {
+      justify-content: center;
+    }
+
+    .clock-time {
+      font-size: 1.05rem;
+    }
+
+    .phase-label {
+      font-size: 0.52rem;
+    }
+
+    .dice-row {
+      min-width: 0;
+    }
+
+    .dice-badge {
+      height: 24px;
+      font-size: 0.68rem;
+    }
+
+    .side-actions {
+      flex-direction: row;
+      gap: 3px;
+    }
+
+    .side-actions button.btn {
+      flex: 1 1 0;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    .board-stage {
+      grid-row: 2;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .pitch {
+      width: min(92vw, calc(100cqh * 7 / 9));
+      max-width: 92vw;
+      border-width: 2px;
+      border-radius: 8px;
+    }
+
+    .defender {
+      width: 72%;
+      height: 72%;
+      font-size: clamp(0.62rem, 3.4vw, 0.9rem);
+    }
+
+    .ball {
+      font-size: clamp(1.25rem, 7vw, 2rem);
+    }
+
+    footer.footer {
+      font-size: 0.58rem;
+    }
   }
 </style>
 </head>
@@ -794,7 +987,8 @@
     stepsLeft: 0,
     visitedThisTurn: new Set(),
     clockRunning: false,
-    recordedMatch: false
+    recordedMatch: false,
+    lastBallMove: null
   };
 
   let timerId = null;
@@ -1048,6 +1242,7 @@
     state.visitedThisTurn = new Set();
     state.clockRunning = false;
     state.recordedMatch = false;
+    state.lastBallMove = null;
 
     diceValueEl.textContent = "-";
     stepsLeftEl.textContent = "0 Sch.";
@@ -1094,6 +1289,7 @@
   function prepareRollPhase(delayMs = 420) {
     state.dice = null;
     state.stepsLeft = 0;
+    state.lastBallMove = null;
     state.selectedDefId = null;
     state.visitedThisTurn.clear();
     if (state.phase !== "golden_goal") {
@@ -1123,6 +1319,7 @@
     state.ball = { ...BALL_START };
     state.dice = null;
     state.stepsLeft = 0;
+    state.lastBallMove = null;
     state.visitedThisTurn.clear();
     state.turn = nextTeam;
     state.phase = "roll";
@@ -1215,6 +1412,11 @@
     const valid = getValidBallMoves().some(m => m.r === r && m.c === c);
     if (!valid) return;
 
+    const previousBall = { ...state.ball };
+    state.lastBallMove = {
+      r: previousBall.r - r,
+      c: previousBall.c - c
+    };
     state.ball = { r, c };
     state.stepsLeft -= 1;
     state.visitedThisTurn.add(keyOf(r, c));
@@ -1572,6 +1774,10 @@
           const ballEl = document.createElement("span");
           ballEl.className = "ball";
           ballEl.textContent = "⚽";
+          if (state.lastBallMove) {
+            ballEl.style.setProperty("--ball-from-r", state.lastBallMove.r);
+            ballEl.style.setProperty("--ball-from-c", state.lastBallMove.c);
+          }
           cell.appendChild(ballEl);
         }
 
@@ -1581,6 +1787,8 @@
     }
 
     pitchEl.replaceChildren(frag);
+    // Die Animation gehört nur zu dieser einen Neudarstellung des Ballzugs.
+    state.lastBallMove = null;
   }
 
   btnRoll.addEventListener("click", rollDice);

@@ -98,8 +98,8 @@
     flex-shrink: 0;
   }
 
-  select.ctrl-select,
-  button.btn {
+  button.btn,
+  button.choice-btn {
     background: var(--panel-2);
     color: var(--text);
     border: 1px solid var(--border);
@@ -109,6 +109,31 @@
     padding: 4px 6px;
     cursor: pointer;
     transition: background 0.15s, transform 0.08s;
+  }
+
+  .choice-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    background: rgba(8, 14, 23, 0.42);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+  }
+
+  .choice-btn {
+    white-space: nowrap;
+  }
+
+  .choice-btn.active {
+    background: #2d4665;
+    border-color: rgba(255,255,255,0.24);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .choice-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
   }
 
   button.btn:active:not(:disabled) {
@@ -680,12 +705,19 @@
 
     .top-actions {
       gap: 3px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
-    select.ctrl-select,
-    button.btn {
+    button.btn,
+    button.choice-btn {
       font-size: 0.62rem;
       padding: 4px 5px;
+    }
+
+    .choice-group {
+      gap: 1px;
+      padding: 1px;
     }
 
     .arena {
@@ -803,20 +835,20 @@
       <div class="brand-sub">Blankenhagen Spieleentwicklung</div>
     </div>
     <div class="top-actions">
-      <select id="modeSelect" class="ctrl-select" aria-label="Spielmodus">
-        <option value="pve">1P vs. KI</option>
-        <option value="pvp">2P Pass &amp; Play</option>
-      </select>
-      <select id="diffSelect" class="ctrl-select" aria-label="KI-Schwierigkeitsstufe">
-        <option value="hobby">Hobby</option>
-        <option value="amateur" selected>Amateur</option>
-        <option value="profi">Profi</option>
-      </select>
-      <select id="timeSelect" class="ctrl-select" aria-label="Spielzeit">
-        <option value="120" selected>2:00</option>
-        <option value="180">3:00</option>
-        <option value="300">5:00</option>
-      </select>
+      <div class="choice-group" aria-label="Spielmodus">
+        <button class="choice-btn active" type="button" data-setting="mode" data-value="pve">1P vs. KI</button>
+        <button class="choice-btn" type="button" data-setting="mode" data-value="pvp">2P Pass &amp; Play</button>
+      </div>
+      <div class="choice-group" aria-label="KI-Schwierigkeitsstufe">
+        <button class="choice-btn" type="button" data-setting="difficulty" data-value="hobby">Hobby</button>
+        <button class="choice-btn active" type="button" data-setting="difficulty" data-value="amateur">Amateur</button>
+        <button class="choice-btn" type="button" data-setting="difficulty" data-value="profi">Profi</button>
+      </div>
+      <div class="choice-group" aria-label="Spielzeit">
+        <button class="choice-btn active" type="button" data-setting="duration" data-value="120">2:00</button>
+        <button class="choice-btn" type="button" data-setting="duration" data-value="180">3:00</button>
+        <button class="choice-btn" type="button" data-setting="duration" data-value="300">5:00</button>
+      </div>
       <button id="btnTable" class="btn" type="button">Tabelle</button>
       <button id="btnRules" class="btn" type="button">Regeln</button>
       <button id="btnReset" class="btn" type="button" title="Neu starten">↻</button>
@@ -842,7 +874,7 @@
       </div>
 
       <div id="statusBar" class="side-status">
-        Blau: Setze 6 Abwehrspieler (mind. 1 Feld Abstand zwischen Verteidigern).
+        Blau ist dran: Abwehrspieler 1 aufstellen.
       </div>
     </aside>
 
@@ -897,7 +929,7 @@
     <div class="modal-body">
       <ul>
         <li><strong>Spielfeld (7×9):</strong> Gemeinsamer Ball (⚽) startet in der Mitte (D5). Blau greift nach oben aufs rote Tor (D9) an, Rot nach unten aufs blaue Tor (D1).</li>
-        <li><strong>Abwehr aufstellen &amp; Mauerverbot:</strong> Beide Seiten platzieren je <strong>6 Abwehrspieler</strong> (nicht auf Tore oder Ballmitte). Zwischen zwei Abwehrspielern (auch über Teams hinweg) muss immer mindestens <strong>1 Feld Abstand</strong> bleiben – kein direktes Nebeneinanderstehen (auch nicht diagonal), damit nicht gemauert werden kann.</li>
+        <li><strong>Abwehr aufstellen &amp; Mauerverbot:</strong> Beide Seiten platzieren je <strong>6 Abwehrspieler abwechselnd</strong>. Die Abstandsregel gilt nur zwischen Abwehrspielern <strong>des eigenen Teams</strong>: Eigene Spieler dürfen weder direkt nebeneinander noch diagonal nebeneinander stehen. Ein gegnerischer Abwehrspieler darf dagegen direkt neben oder diagonal zu einem Spieler des anderen Teams stehen.</li>
         <li><strong>Abwechselnd würfeln &amp; ziehen:</strong> Nach dem Wurf (1–6) darf die gesamte Augenzahl flexibel in beliebigen Kombinationen aus <strong>geradeaus, links und rechts</strong> ausgespielt werden (z. B. bei 4: 3 vor + 1 seitlich). Kein Feld wird im selben Zug zweimal betreten.</li>
         <li><strong>Abwehr verschieben:</strong> Nach einem Zug darf die Gegenseite jeden ihrer 6 Abwehrspieler um <strong>maximal 1 Feld orthogonal</strong> (vor, zurück, links, rechts) verschieben (Uhr pausiert, Mauerverbot bleibt aktiv).</li>
         <li><strong>Taktisches Aus:</strong> Ein Zug ins Aus wechselt den Ballbesitz / das Zugrecht wie im Fußball.</li>
@@ -998,9 +1030,6 @@
   const pitchEl = document.getElementById("pitch");
   const goalBanner = document.getElementById("goalBanner");
   const goalBannerSub = document.getElementById("goalBannerSub");
-  const modeSelect = document.getElementById("modeSelect");
-  const diffSelect = document.getElementById("diffSelect");
-  const timeSelect = document.getElementById("timeSelect");
   const clockDisplay = document.getElementById("clockDisplay");
   const phaseDisplay = document.getElementById("phaseDisplay");
   const statusBar = document.getElementById("statusBar");
@@ -1054,9 +1083,18 @@
     return null;
   }
 
-  function violatesWallRule(r, c, ignoreDefId = null) {
+  function getDefenderTeamById(defId) {
+    if (!defId) return null;
     for (const team of ["blue", "red"]) {
-      for (const d of state.defenders[team]) {
+      if (state.defenders[team].some(d => d.id === defId)) return team;
+    }
+    return null;
+  }
+
+  function violatesWallRule(r, c, ignoreDefId = null, team = null) {
+    const teamsToCheck = team ? [team] : ["blue", "red"];
+    for (const checkTeam of teamsToCheck) {
+      for (const d of state.defenders[checkTeam]) {
         if (ignoreDefId && d.id === ignoreDefId) continue;
         const dr = Math.abs(d.r - r);
         const dc = Math.abs(d.c - c);
@@ -1073,7 +1111,15 @@
     if (isReservedCell(r, c)) return false;
     if (isSamePos({ r, c }, state.ball)) return false;
     if (getDefenderAt(r, c)) return false;
-    if (violatesWallRule(r, c, ignoreDefId)) return false;
+
+    // Die Abstandsregel gilt nur zwischen Abwehrspielern desselben Teams.
+    // Ein gegnerischer Abwehrspieler darf direkt neben oder diagonal stehen.
+    let teamForRule = null;
+    if (state.phase === "setup_blue") teamForRule = "blue";
+    if (state.phase === "setup_red") teamForRule = "red";
+    if (!teamForRule && ignoreDefId) teamForRule = getDefenderTeamById(ignoreDefId);
+
+    if (teamForRule && violatesWallRule(r, c, ignoreDefId, teamForRule)) return false;
     return true;
   }
 
@@ -1227,9 +1273,9 @@
       cheerTimeoutId = null;
     }
     goalBanner.classList.remove("show");
-    state.mode = modeSelect.value;
-    state.difficulty = diffSelect.value;
-    state.duration = parseInt(timeSelect.value, 10) || 120;
+    state.mode = state.mode || "pve";
+    state.difficulty = state.difficulty || "amateur";
+    state.duration = state.duration || 120;
     state.timeLeft = state.duration;
     state.phase = "setup_blue";
     state.turn = "blue";
@@ -1246,7 +1292,7 @@
 
     diceValueEl.textContent = "-";
     stepsLeftEl.textContent = "0 Sch.";
-    setStatus("Blau: Setze 6 Abwehrspieler (mind. 1 Feld Abstand zwischen Verteidigern).");
+    setStatus("Blau ist dran: Abwehrspieler 1 aufstellen.");
     updateHud();
     renderBoard();
   }
@@ -1342,7 +1388,7 @@
     state.defenders[defenderTeam].forEach(d => { d.moved = false; });
 
     const defName = defenderTeam === "blue" ? "Blau" : "Rot";
-    setStatus(`${defName}: Verschiebe Abwehr (max. 1 Feld orthogonal, Abstand halten) oder „Zug fertig“.`);
+    setStatus(`${defName}: Verschiebe Abwehr (max. 1 Feld orthogonal, Abstand zu eigenen Spielern halten) oder „Zug fertig“.`);
     updateHud();
     renderBoard();
 
@@ -1452,12 +1498,7 @@
   }
 
   function handleSetupClick(r, c) {
-    if (!canPlaceDefenderAt(r, c)) {
-      if (!isReservedCell(r, c) && !getDefenderAt(r, c) && violatesWallRule(r, c)) {
-        setStatus("Mauerverbot: Zwischen Abwehrspielern muss mind. 1 Feld Abstand bleiben!");
-      }
-      return;
-    }
+    if (!canPlaceDefenderAt(r, c)) return;
 
     if (state.phase === "setup_blue") {
       if (state.defenders.blue.length >= DEFENDERS_PER_TEAM) return;
@@ -1469,13 +1510,21 @@
       });
 
       if (state.defenders.blue.length === DEFENDERS_PER_TEAM) {
+        if (state.mode === "pve") {
+          state.phase = "setup_red";
+          setStatus("KI: Abwehrspieler wird aufgestellt …");
+          aiTimeoutId = setTimeout(runAiSetup, 260);
+        } else {
+          state.phase = "setup_red";
+          setStatus("Rot ist dran: 1 Abwehrspieler aufstellen.");
+        }
+      } else {
+        // Immer abwechselnd: nach jedem blauen Spieler kommt Rot.
         state.phase = "setup_red";
-        setStatus("Rot: Setze 6 Abwehrspieler auf das Feld.");
+        setStatus(state.mode === "pve" ? "KI: Abwehrspieler wird aufgestellt …" : "Rot ist dran: 1 Abwehrspieler aufstellen.");
         if (state.mode === "pve") {
           aiTimeoutId = setTimeout(runAiSetup, 260);
         }
-      } else {
-        setStatus(`Blau: Noch ${DEFENDERS_PER_TEAM - state.defenders.blue.length} Abwehrspieler.`);
       }
       updateHud();
       renderBoard();
@@ -1496,7 +1545,8 @@
         state.turn = "blue";
         setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
       } else {
-        setStatus(`Rot: Noch ${DEFENDERS_PER_TEAM - state.defenders.red.length} Abwehrspieler.`);
+        state.phase = "setup_blue";
+        setStatus(`Blau ist dran: Abwehrspieler ${state.defenders.blue.length + 1} aufstellen.`);
       }
       updateHud();
       renderBoard();
@@ -1545,15 +1595,17 @@
   }
 
   function runAiSetup() {
+    if (state.phase !== "setup_red" || state.defenders.red.length >= DEFENDERS_PER_TEAM) return;
+
     const byDiff = {
       hobby:   [{ r: 1, c: 0 }, { r: 1, c: 3 }, { r: 1, c: 6 }, { r: 6, c: 0 }, { r: 6, c: 3 }, { r: 6, c: 6 }],
       amateur: [{ r: 2, c: 1 }, { r: 2, c: 4 }, { r: 5, c: 2 }, { r: 5, c: 5 }, { r: 7, c: 1 }, { r: 7, c: 4 }],
       profi:   [{ r: 2, c: 2 }, { r: 2, c: 5 }, { r: 5, c: 1 }, { r: 5, c: 4 }, { r: 7, c: 2 }, { r: 7, c: 5 }]
     };
     const preferred = byDiff[state.difficulty] || byDiff.amateur;
+    let placed = false;
 
     for (const pos of preferred) {
-      if (state.defenders.red.length >= DEFENDERS_PER_TEAM) break;
       if (canPlaceDefenderAt(pos.r, pos.c)) {
         state.defenders.red.push({
           id: `r${state.defenders.red.length + 1}`,
@@ -1561,27 +1613,35 @@
           c: pos.c,
           moved: false
         });
+        placed = true;
+        break;
       }
     }
 
-    let rIdx = 0;
-    let cIdx = 0;
-    while (state.defenders.red.length < DEFENDERS_PER_TEAM) {
-      if (canPlaceDefenderAt(rIdx, cIdx)) {
-        state.defenders.red.push({
-          id: `r${state.defenders.red.length + 1}`,
-          r: rIdx,
-          c: cIdx,
-          moved: false
-        });
+    if (!placed) {
+      for (let r = 0; r < ROWS && !placed; r++) {
+        for (let c = 0; c < COLS && !placed; c++) {
+          if (canPlaceDefenderAt(r, c)) {
+            state.defenders.red.push({
+              id: `r${state.defenders.red.length + 1}`,
+              r,
+              c,
+              moved: false
+            });
+            placed = true;
+          }
+        }
       }
-      cIdx++;
-      if (cIdx >= COLS) { cIdx = 0; rIdx++; }
     }
 
-    state.phase = "roll";
-    state.turn = "blue";
-    setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
+    if (state.defenders.red.length >= DEFENDERS_PER_TEAM) {
+      state.phase = "roll";
+      state.turn = "blue";
+      setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
+    } else {
+      state.phase = "setup_blue";
+      setStatus(`Blau ist dran: Abwehrspieler ${state.defenders.blue.length + 1} aufstellen.`);
+    }
     updateHud();
     renderBoard();
   }
@@ -1688,7 +1748,16 @@
     const diffMap = { hobby: "Hobby", amateur: "Amateur", profi: "Profi" };
     labelBlueEl.textContent = "Blau";
     labelRedEl.textContent = state.mode === "pve" ? `KI (${diffMap[state.difficulty]})` : "Rot";
-    diffSelect.disabled = state.mode !== "pve";
+    document.querySelectorAll('[data-setting="mode"]').forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.value === state.mode);
+    });
+    document.querySelectorAll('[data-setting="difficulty"]').forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.value === state.difficulty);
+      btn.disabled = state.mode !== "pve";
+    });
+    document.querySelectorAll('[data-setting="duration"]').forEach(btn => {
+      btn.classList.toggle("active", Number(btn.dataset.value) === state.duration);
+    });
 
     boxBlueEl.classList.toggle("active", state.turn === "blue" && state.phase !== "finished");
     boxRedEl.classList.toggle("active", state.turn === "red" && state.phase !== "finished");
@@ -1796,9 +1865,15 @@
   btnDoneMove.addEventListener("click", completeDefenderShift);
   document.getElementById("btnReset").addEventListener("click", resetMatch);
 
-  modeSelect.addEventListener("change", resetMatch);
-  diffSelect.addEventListener("change", resetMatch);
-  timeSelect.addEventListener("change", resetMatch);
+  document.querySelectorAll(".choice-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const setting = btn.dataset.setting;
+      if (setting === "mode") state.mode = btn.dataset.value;
+      if (setting === "difficulty" && state.mode === "pve") state.difficulty = btn.dataset.value;
+      if (setting === "duration") state.duration = Number(btn.dataset.value);
+      resetMatch();
+    });
+  });
 
   document.getElementById("btnRules").addEventListener("click", () => {
     document.getElementById("rulesModal").classList.add("open");

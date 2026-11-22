@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Vector Ball – Blankenhagen Spieleentwicklung</title>
+<style>
+  :root {
+    --bg: #0c131d;
+    --panel: #152030;
+    --panel-2: #1c2b40;
+    --text: #eef3f9;
+    --muted: #9fb0c7;
+    --border: rgba(255, 255, 255, 0.12);
+    --blue: #2563eb;
+    --blue-soft: rgba(37, 99, 235, 0.24);
+    --red: #dc2626;
+    --red-soft: rgba(220, 38, 38, 0.24);
+    --pitch-a: #1f6b3b;
+    --pitch-b: #195931;
+    --line: rgba(255, 255, 255, 0.28);
+    --accent: #facc15;
+    --valid: #38bdf8;
+    --ok: #22c55e;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .app {
+    height: 100dvh;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(4px, 0.8vh, 10px) clamp(6px, 1.4vw, 14px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 0.7vh, 8px);
+    min-height: 0;
+  }
+
+  /* Schmale Kopfzeile */
+  header.topbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 8px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .brand-title {
+    font-weight: 800;
+    font-size: clamp(0.84rem, 2.2vw, 1.1rem);
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .brand-sub {
+    font-size: clamp(0.6rem, 1.4vw, 0.74rem);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  select.ctrl-select,
+  button.btn {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: clamp(0.66rem, 1.5vw, 0.82rem);
+    font-weight: 600;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.08s;
+  }
+
+  button.btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  button.btn:hover:not(:disabled) {
+    background: #263954;
+  }
+
+  button.btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
+  button.btn-primary {
+    background: var(--ok);
+    color: #07190e;
+    border-color: transparent;
+    font-weight: 800;
+  }
+
+  button.btn-primary:hover:not(:disabled) {
+    background: #2fd66d;
+  }
+
+  button.btn-out {
+    background: rgba(250, 204, 21, 0.16);
+    border-color: rgba(250, 204, 21, 0.45);
+    color: #fef08a;
+  }
+
+  /* Hauptbereich: Links | Spielfeld (7x9) | Rechts */
+  .arena {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(82px, 145px) minmax(0, 1fr) minmax(82px, 145px);
+    align-items: stretch;
+    gap: clamp(5px, 1vw, 12px);
+  }
+
+  .side-col {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .side-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 6px 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .team-card.blue {
+    background: var(--blue-soft);
+  }
+
+  .team-card.red {
+    background: var(--red-soft);
+  }
+
+  .team-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.35);
+  }
+
+  .team-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .team-name {
+    font-size: clamp(0.68rem, 1.5vw, 0.86rem);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .team-dir {
+    font-size: clamp(0.58rem, 1.2vw, 0.72rem);
+    color: var(--muted);
+  }
+
+  .team-score {
+    font-size: clamp(1.1rem, 2.8vw, 1.55rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .clock-card {
+    text-align: center;
+  }
+
+  .clock-time {
+    font-size: clamp(0.95rem, 2.4vw, 1.35rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    line-height: 1.05;
+  }
+
+  .phase-label {
+    font-size: clamp(0.56rem, 1.25vw, 0.7rem);
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+
+  .side-status {
+    font-size: clamp(0.6rem, 1.3vw, 0.74rem);
+    line-height: 1.28;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 6px;
+    overflow-y: auto;
+    max-height: 34%;
+  }
+
+  .dice-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .dice-badge {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: clamp(0.75rem, 1.7vw, 0.95rem);
+    color: var(--accent);
+    padding: 0 5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .side-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .side-actions button.btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Spielfeld-Mitte: nutzt die volle Höhe des Handybildschirms */
+  .board-stage {
+    position: relative;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+  }
+
+  .pitch {
+    width: min(100cqw, calc(100cqh * 7 / 9));
+    aspect-ratio: 7 / 9;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    border: 2.5px solid rgba(255, 255, 255, 0.75);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    user-select: none;
+  }
+
+  .cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    cursor: default;
+    transition: background 0.12s;
+  }
+
+  .cell:nth-child(7n) {
+    border-right: none;
+  }
+
+  .cell:nth-last-child(-n+7) {
+    border-bottom: none;
+  }
+
+  .cell.even {
+    background: var(--pitch-a);
+  }
+
+  .cell.odd {
+    background: var(--pitch-b);
+  }
+
+  .cell.midline {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .cell.goal-red {
+    background: rgba(220, 38, 38, 0.34);
+    box-shadow: inset 0 0 0 2px #f87171;
+  }
+
+  .cell.goal-blue {
+    background: rgba(37, 99, 235, 0.36);
+    box-shadow: inset 0 0 0 2px #60a5fa;
+  }
+
+  .cell.goal-red::after,
+  .cell.goal-blue::after {
+    position: absolute;
+    font-size: clamp(0.48rem, 1.2vw, 0.66rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+
+  .cell.goal-red::after {
+    content: "TOR";
+    top: 2px;
+    color: #fecaca;
+  }
+
+  .cell.goal-blue::after {
+    content: "TOR";
+    bottom: 2px;
+    color: #bfdbfe;
+  }
+
+  .cell.valid-move {
+    background: rgba(56, 189, 248, 0.32);
+    box-shadow: inset 0 0 0 2.5px var(--valid);
+    cursor: pointer;
+  }
+
+  .cell.valid-move:hover {
+    background: rgba(56, 189, 248, 0.48);
+  }
+
+  .cell.selected-def {
+    box-shadow: inset 0 0 0 2.5px var(--accent);
+    background: rgba(250, 204, 21, 0.22);
+  }
+
+  .cell.def-target {
+    background: rgba(34, 197, 94, 0.3);
+    box-shadow: inset 0 0 0 2px #4ade80;
+    cursor: pointer;
+  }
+
+  .cell.setup-target {
+    cursor: pointer;
+  }
+
+  .cell.setup-target:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .defender {
+    width: 68%;
+    height: 68%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(0.6rem, 1.5vw, 0.85rem);
+    font-weight: 900;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
+
+  .defender.blue {
+    background: var(--blue);
+  }
+
+  .defender.red {
+    background: var(--red);
+  }
+
+  .defender.moved {
+    opacity: 0.65;
+    border-style: dashed;
+  }
+
+  .ball {
+    font-size: clamp(1.1rem, 3vw, 1.85rem);
+    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* Torjubel-Overlay */
+  .goal-banner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(7, 13, 22, 0.62);
+    border-radius: 8px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .goal-banner.show {
+    opacity: 1;
+  }
+
+  .goal-banner-text {
+    font-size: clamp(1.6rem, 6vw, 3.2rem);
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.85), 0 0 24px rgba(250, 204, 21, 0.55);
+    transform: scale(0.75);
+    transition: transform 0.28s cubic-bezier(0.22, 1.4, 0.36, 1);
+  }
+
+  .goal-banner.show .goal-banner-text {
+    transform: scale(1.05);
+  }
+
+  .goal-banner-sub {
+    font-size: clamp(0.8rem, 2.2vw, 1.15rem);
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(21, 32, 48, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .goal-banner.blue .goal-banner-sub {
+    border-color: #60a5fa;
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.6);
+  }
+
+  .goal-banner.red .goal-banner-sub {
+    border-color: #f87171;
+    box-shadow: 0 0 16px rgba(220, 38, 38, 0.6);
+  }
+
+  /* Schmaler Footer */
+  footer.footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: clamp(0.62rem, 1.4vw, 0.76rem);
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+  }
+
+  .link-btn:hover {
+    color: var(--text);
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 9, 15, 0.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    z-index: 50;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+  }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 85dvh;
+    overflow-y: auto;
+    padding: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .modal-body {
+    font-size: 0.86rem;
+    line-height: 1.48;
+    color: var(--text);
+  }
+
+  .modal-body ul {
+    padding-left: 18px;
+    margin: 6px 0 12px;
+  }
+
+  .modal-body li {
+    margin-bottom: 5px;
+  }
+
+  table.standings {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  table.standings th,
+  table.standings td {
+    padding: 6px 5px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.standings th:first-child,
+  table.standings td:first-child {
+    text-align: left;
+  }
+
+  table.standings th {
+    color: var(--muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+  }
+
+  .modal-footer {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-title"><span>⚽</span><span>VECTOR BALL</span></div>
+      <div class="brand-sub">Blankenhagen Spieleentwicklung</div>
+    </div>
+    <div class="top-actions">
+      <select id="modeSelect" class="ctrl-select" aria-label="Spielmodus">
+        <option value="pve">1P vs. KI</option>
+        <option value="pvp">2P Pass &amp; Play</option>
+      </select>
+      <select id="diffSelect" class="ctrl-select" aria-label="KI-Schwierigkeitsstufe">
+        <option value="hobby">Hobby</option>
+        <option value="amateur" selected>Amateur</option>
+        <option value="profi">Profi</option>
+      </select>
+      <select id="timeSelect" class="ctrl-select" aria-label="Spielzeit">
+        <option value="120" selected>2:00</option>
+        <option value="180">3:00</option>
+        <option value="300">5:00</option>
+      </select>
+      <button id="btnTable" class="btn" type="button">Tabelle</button>
+      <button id="btnRules" class="btn" type="button">Regeln</button>
+      <button id="btnReset" class="btn" type="button" title="Neu starten">↻</button>
+    </div>
+  </header>
+
+  <div class="arena">
+    <!-- Linke Spalte: Blau, Uhr, Meldung -->
+    <aside class="side-col">
+      <div id="boxBlue" class="side-card team-card blue active">
+        <div class="team-header">
+          <div>
+            <div id="labelBlue" class="team-name">Blau</div>
+            <div class="team-dir">↑ Rotes Tor</div>
+          </div>
+          <div id="scoreBlue" class="team-score">0</div>
+        </div>
+      </div>
+
+      <div class="side-card clock-card">
+        <div id="clockDisplay" class="clock-time">02:00</div>
+        <div id="phaseDisplay" class="phase-label">AUFSTELLUNG BLAU (0/6)</div>
+      </div>
+
+      <div id="statusBar" class="side-status">
+        Blau: Setze 6 Abwehrspieler (mind. 1 Feld Abstand zwischen Verteidigern).
+      </div>
+    </aside>
+
+    <!-- Mitte: 7x9 Spielfeld -->
+    <main class="board-stage">
+      <div id="pitch" class="pitch" role="grid" aria-label="7x9 Vector Ball Spielfeld"></div>
+      <div id="goalBanner" class="goal-banner" aria-live="polite">
+        <div class="goal-banner-text">⚽ TOOOR! 🎉</div>
+        <div id="goalBannerSub" class="goal-banner-sub">Blau trifft!</div>
+      </div>
+    </main>
+
+    <!-- Rechte Spalte: Rot, Würfel, Aktionen -->
+    <aside class="side-col">
+      <div id="boxRed" class="side-card team-card red">
+        <div class="team-header">
+          <div>
+            <div id="labelRed" class="team-name">KI</div>
+            <div class="team-dir">↓ Blaues Tor</div>
+          </div>
+          <div id="scoreRed" class="team-score">0</div>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="dice-row">
+          <div id="diceValue" class="dice-badge" title="Würfel">-</div>
+          <div id="stepsLeft" class="dice-badge" title="Verbleibende Schritte">0 Sch.</div>
+        </div>
+        <div class="side-actions">
+          <button id="btnRoll" class="btn btn-primary" type="button" disabled>🎲 Würfeln</button>
+          <button id="btnOut" class="btn btn-out" type="button" disabled>Takt. Aus</button>
+          <button id="btnDoneMove" class="btn" type="button" disabled>Zug fertig</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <span>© Blankenhagen Spieleentwicklung</span>
+    <button id="btnImprint" class="link-btn" type="button">Impressum</button>
+  </footer>
+</div>
+
+<!-- Regeln-Modal -->
+<div id="rulesModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="rulesTitle">Regeln – Vector Ball</h2>
+      <button class="btn" type="button" data-close="rulesModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <ul>
+        <li><strong>Spielfeld (7×9):</strong> Gemeinsamer Ball (⚽) startet in der Mitte (D5). Blau greift nach oben aufs rote Tor (D9) an, Rot nach unten aufs blaue Tor (D1).</li>
+        <li><strong>Abwehr aufstellen &amp; Mauerverbot:</strong> Beide Seiten platzieren je <strong>6 Abwehrspieler</strong> (nicht auf Tore oder Ballmitte). Zwischen zwei Abwehrspielern (auch über Teams hinweg) muss immer mindestens <strong>1 Feld Abstand</strong> bleiben – kein direktes Nebeneinanderstehen (auch nicht diagonal), damit nicht gemauert werden kann.</li>
+        <li><strong>Abwechselnd würfeln &amp; ziehen:</strong> Nach dem Wurf (1–6) darf die gesamte Augenzahl flexibel in beliebigen Kombinationen aus <strong>geradeaus, links und rechts</strong> ausgespielt werden (z. B. bei 4: 3 vor + 1 seitlich). Kein Feld wird im selben Zug zweimal betreten.</li>
+        <li><strong>Abwehr verschieben:</strong> Nach einem Zug darf die Gegenseite jeden ihrer 6 Abwehrspieler um <strong>maximal 1 Feld orthogonal</strong> (vor, zurück, links, rechts) verschieben (Uhr pausiert, Mauerverbot bleibt aktiv).</li>
+        <li><strong>Taktisches Aus:</strong> Ein Zug ins Aus wechselt den Ballbesitz / das Zugrecht wie im Fußball.</li>
+        <li><strong>Sieg nach Zeit:</strong> Wer nach Ablauf der Spieluhr mehr Tore hat, gewinnt (bei Gleichstand entscheidet das <strong>Golden Goal</strong>).</li>
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" data-close="rulesModal">Verstanden</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bundesliga-Tabelle-Modal -->
+<div id="tableModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tableTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="tableTitle">Bundesliga-Punktetabelle</h2>
+      <button class="btn" type="button" data-close="tableModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color: var(--muted); font-size: 0.78rem;">3 Punkte für Sieg · 1 Punkt für Unentschieden · 0 Punkte für Niederlage</p>
+      <table class="standings">
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Sp</th>
+            <th>S</th>
+            <th>U</th>
+            <th>N</th>
+            <th>Tore</th>
+            <th>Diff</th>
+            <th>Pkt</th>
+          </tr>
+        </thead>
+        <tbody id="standingsBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button id="btnClearTable" class="btn" type="button">Tabelle leeren</button>
+      <button class="btn btn-primary" type="button" data-close="tableModal">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Impressum-Modal -->
+<div id="imprintModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="imprintTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="imprintTitle">Impressum</h2>
+      <button class="btn" type="button" data-close="imprintModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Blankenhagen Spieleentwicklung</strong></p>
+      <p>Jörg Blankenhagen<br />
+      Kanalstraße 31<br />
+      73614 Schorndorf</p>
+      <p style="margin-top: 8px;">E-Mail: spieleentwicklung@freenet.de</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" data-close="imprintModal">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const ROWS = 9;
+  const COLS = 7;
+  const BALL_START = { r: 4, c: 3 }; // D5
+  const GOAL_RED = { r: 0, c: 3 };   // D9 (Ziel für Blau)
+  const GOAL_BLUE = { r: 8, c: 3 };  // D1 (Ziel für Rot)
+  const DEFENDERS_PER_TEAM = 6;
+  const STORAGE_KEY = "vector_ball_bundesliga_v1";
+
+  const state = {
+    mode: "pve",
+    difficulty: "amateur", // "hobby" | "amateur" | "profi"
+    duration: 120,
+    timeLeft: 120,
+    phase: "setup_blue",
+    turn: "blue",
+    score: { blue: 0, red: 0 },
+    ball: { ...BALL_START },
+    defenders: { blue: [], red: [] },
+    selectedDefId: null,
+    dice: null,
+    stepsLeft: 0,
+    visitedThisTurn: new Set(),
+    clockRunning: false,
+    recordedMatch: false
+  };
+
+  let timerId = null;
+  let aiTimeoutId = null;
+  let cheerTimeoutId = null;
+
+  const pitchEl = document.getElementById("pitch");
+  const goalBanner = document.getElementById("goalBanner");
+  const goalBannerSub = document.getElementById("goalBannerSub");
+  const modeSelect = document.getElementById("modeSelect");
+  const diffSelect = document.getElementById("diffSelect");
+  const timeSelect = document.getElementById("timeSelect");
+  const clockDisplay = document.getElementById("clockDisplay");
+  const phaseDisplay = document.getElementById("phaseDisplay");
+  const statusBar = document.getElementById("statusBar");
+  const scoreBlueEl = document.getElementById("scoreBlue");
+  const scoreRedEl = document.getElementById("scoreRed");
+  const boxBlueEl = document.getElementById("boxBlue");
+  const boxRedEl = document.getElementById("boxRed");
+  const labelBlueEl = document.getElementById("labelBlue");
+  const labelRedEl = document.getElementById("labelRed");
+  const btnRoll = document.getElementById("btnRoll");
+  const diceValueEl = document.getElementById("diceValue");
+  const stepsLeftEl = document.getElementById("stepsLeft");
+  const btnOut = document.getElementById("btnOut");
+  const btnDoneMove = document.getElementById("btnDoneMove");
+  const standingsBody = document.getElementById("standingsBody");
+
+  function triggerGoalCheer(scoringTeam) {
+    if (cheerTimeoutId) {
+      clearTimeout(cheerTimeoutId);
+      cheerTimeoutId = null;
+    }
+    const label = scoringTeam === "blue" ? "Blau" : (state.mode === "pve" ? "KI (Rot)" : "Rot");
+    goalBannerSub.textContent = `${label} trifft zum ${state.score.blue}:${state.score.red}!`;
+    goalBanner.className = `goal-banner ${scoringTeam} show`;
+    cheerTimeoutId = setTimeout(() => {
+      goalBanner.classList.remove("show");
+    }, 1700);
+  }
+
+  function keyOf(r, c) {
+    return `${r},${c}`;
+  }
+
+  function isSamePos(a, b) {
+    return a.r === b.r && a.c === b.c;
+  }
+
+  function isReservedCell(r, c) {
+    return (
+      (r === BALL_START.r && c === BALL_START.c) ||
+      (r === GOAL_RED.r && c === GOAL_RED.c) ||
+      (r === GOAL_BLUE.r && c === GOAL_BLUE.c)
+    );
+  }
+
+  function getDefenderAt(r, c) {
+    for (const team of ["blue", "red"]) {
+      const found = state.defenders[team].find(d => d.r === r && d.c === c);
+      if (found) return { team, def: found };
+    }
+    return null;
+  }
+
+  function violatesWallRule(r, c, ignoreDefId = null) {
+    for (const team of ["blue", "red"]) {
+      for (const d of state.defenders[team]) {
+        if (ignoreDefId && d.id === ignoreDefId) continue;
+        const dr = Math.abs(d.r - r);
+        const dc = Math.abs(d.c - c);
+        if (dr <= 1 && dc <= 1) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function canPlaceDefenderAt(r, c, ignoreDefId = null) {
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+    if (isReservedCell(r, c)) return false;
+    if (isSamePos({ r, c }, state.ball)) return false;
+    if (getDefenderAt(r, c)) return false;
+    if (violatesWallRule(r, c, ignoreDefId)) return false;
+    return true;
+  }
+
+  function clearTimers() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    if (aiTimeoutId) {
+      clearTimeout(aiTimeoutId);
+      aiTimeoutId = null;
+    }
+  }
+
+  function setClockRunning(run) {
+    state.clockRunning = run;
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    if (!run) return;
+
+    timerId = setInterval(() => {
+      if (!state.clockRunning) return;
+      state.timeLeft = Math.max(0, state.timeLeft - 1);
+      updateHud();
+
+      if (state.timeLeft === 0) {
+        setClockRunning(false);
+        if (state.score.blue === state.score.red) {
+          state.phase = "golden_goal";
+          state.turn = "blue";
+          setStatus("Unentschieden nach Zeit! GOLDEN GOAL – nächstes Tor entscheidet!");
+          prepareRollPhase();
+        } else {
+          finishMatch();
+        }
+      }
+    }, 1000);
+  }
+
+  function setStatus(msg) {
+    statusBar.textContent = msg;
+  }
+
+  function formatClock(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function loadTable() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return {
+      blue: { name: "Blau", p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 },
+      red:  { name: "Rot",  p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }
+    };
+  }
+
+  function saveTable(data) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (_) {}
+  }
+
+  function recordResult(winner) {
+    if (state.recordedMatch) return;
+    state.recordedMatch = true;
+
+    const tbl = loadTable();
+    const b = tbl.blue;
+    const r = tbl.red;
+
+    b.p += 1;
+    r.p += 1;
+    b.gf += state.score.blue;
+    b.ga += state.score.red;
+    r.gf += state.score.red;
+    r.ga += state.score.blue;
+
+    if (winner === "blue") {
+      b.w += 1; b.pts += 3;
+      r.l += 1;
+    } else if (winner === "red") {
+      r.w += 1; r.pts += 3;
+      b.l += 1;
+    } else {
+      b.d += 1; b.pts += 1;
+      r.d += 1; r.pts += 1;
+    }
+
+    saveTable(tbl);
+  }
+
+  function renderStandings() {
+    const tbl = loadTable();
+    const rows = [tbl.blue, tbl.red].sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const diffA = a.gf - a.ga;
+      const diffB = b.gf - b.ga;
+      if (diffB !== diffA) return diffB - diffA;
+      return b.gf - a.gf;
+    });
+
+    standingsBody.innerHTML = rows.map(t => {
+      const diff = t.gf - t.ga;
+      const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
+      return `<tr>
+        <td><strong>${t.name}</strong></td>
+        <td>${t.p}</td>
+        <td>${t.w}</td>
+        <td>${t.d}</td>
+        <td>${t.l}</td>
+        <td>${t.gf}:${t.ga}</td>
+        <td>${diffStr}</td>
+        <td><strong>${t.pts}</strong></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function finishMatch(forcedWinner = null) {
+    clearTimers();
+    state.clockRunning = false;
+    state.phase = "finished";
+
+    const winner = forcedWinner ||
+      (state.score.blue > state.score.red ? "blue" :
+       state.score.red > state.score.blue ? "red" : "draw");
+
+    recordResult(winner);
+
+    if (winner === "blue") {
+      setStatus(`Schlusspfiff! Blau gewinnt (${state.score.blue}:${state.score.red}).`);
+    } else if (winner === "red") {
+      setStatus(`Schlusspfiff! Rot gewinnt (${state.score.blue}:${state.score.red}).`);
+    } else {
+      setStatus(`Unentschieden (${state.score.blue}:${state.score.red}).`);
+    }
+
+    updateHud();
+    renderBoard();
+  }
+
+  function resetMatch() {
+    clearTimers();
+    if (cheerTimeoutId) {
+      clearTimeout(cheerTimeoutId);
+      cheerTimeoutId = null;
+    }
+    goalBanner.classList.remove("show");
+    state.mode = modeSelect.value;
+    state.difficulty = diffSelect.value;
+    state.duration = parseInt(timeSelect.value, 10) || 120;
+    state.timeLeft = state.duration;
+    state.phase = "setup_blue";
+    state.turn = "blue";
+    state.score = { blue: 0, red: 0 };
+    state.ball = { ...BALL_START };
+    state.defenders = { blue: [], red: [] };
+    state.selectedDefId = null;
+    state.dice = null;
+    state.stepsLeft = 0;
+    state.visitedThisTurn = new Set();
+    state.clockRunning = false;
+    state.recordedMatch = false;
+
+    diceValueEl.textContent = "-";
+    stepsLeftEl.textContent = "0 Sch.";
+    setStatus("Blau: Setze 6 Abwehrspieler (mind. 1 Feld Abstand zwischen Verteidigern).");
+    updateHud();
+    renderBoard();
+  }
+
+  function getValidBallMoves() {
+    if ((state.phase !== "move" && state.phase !== "golden_goal") || state.stepsLeft <= 0) {
+      return [];
+    }
+    const forwardDr = state.turn === "blue" ? -1 : 1;
+    const candidates = [
+      { r: state.ball.r + forwardDr, c: state.ball.c },
+      { r: state.ball.r, c: state.ball.c - 1 },
+      { r: state.ball.r, c: state.ball.c + 1 }
+    ];
+
+    return candidates.filter(pos => {
+      if (pos.r < 0 || pos.r >= ROWS || pos.c < 0 || pos.c >= COLS) return false;
+      if (state.visitedThisTurn.has(keyOf(pos.r, pos.c))) return false;
+      if (getDefenderAt(pos.r, pos.c)) return false;
+
+      if (state.turn === "blue" && isSamePos(pos, GOAL_BLUE)) return false;
+      if (state.turn === "red" && isSamePos(pos, GOAL_RED)) return false;
+
+      return true;
+    });
+  }
+
+  function getValidDefenderTargets(def) {
+    if (state.phase !== "shift_def" || def.moved) return [];
+    const dirs = [
+      { r: def.r - 1, c: def.c },
+      { r: def.r + 1, c: def.c },
+      { r: def.r, c: def.c - 1 },
+      { r: def.r, c: def.c + 1 }
+    ];
+
+    return dirs.filter(pos => canPlaceDefenderAt(pos.r, pos.c, def.id));
+  }
+
+  function prepareRollPhase(delayMs = 420) {
+    state.dice = null;
+    state.stepsLeft = 0;
+    state.selectedDefId = null;
+    state.visitedThisTurn.clear();
+    if (state.phase !== "golden_goal") {
+      state.phase = "roll";
+    }
+    updateHud();
+    renderBoard();
+
+    if (state.mode === "pve" && state.turn === "red") {
+      aiTimeoutId = setTimeout(runAiTurn, delayMs);
+    }
+  }
+
+  function handleGoalScored(scoringTeam) {
+    state.score[scoringTeam] += 1;
+    setClockRunning(false);
+    triggerGoalCheer(scoringTeam);
+
+    if (state.phase === "golden_goal") {
+      finishMatch(scoringTeam);
+      return;
+    }
+
+    const teamLabel = scoringTeam === "blue" ? "Blau" : "Rot";
+    const nextTeam = scoringTeam === "blue" ? "red" : "blue";
+    setStatus(`TOR für ${teamLabel}! Stand ${state.score.blue}:${state.score.red} – Anstoß in der Mitte.`);
+    state.ball = { ...BALL_START };
+    state.dice = null;
+    state.stepsLeft = 0;
+    state.visitedThisTurn.clear();
+    state.turn = nextTeam;
+    state.phase = "roll";
+    updateHud();
+    renderBoard();
+
+    if (state.mode === "pve" && state.turn === "red") {
+      aiTimeoutId = setTimeout(() => {
+        setStatus("KI macht sich bereit für den Anstoß...");
+        aiTimeoutId = setTimeout(runAiTurn, 950);
+      }, 1150);
+    }
+  }
+
+  function startDefenderShift() {
+    const defenderTeam = state.turn === "blue" ? "red" : "blue";
+    setClockRunning(false);
+    state.phase = "shift_def";
+    state.selectedDefId = null;
+    state.defenders[defenderTeam].forEach(d => { d.moved = false; });
+
+    const defName = defenderTeam === "blue" ? "Blau" : "Rot";
+    setStatus(`${defName}: Verschiebe Abwehr (max. 1 Feld orthogonal, Abstand halten) oder „Zug fertig“.`);
+    updateHud();
+    renderBoard();
+
+    if (state.mode === "pve" && defenderTeam === "red") {
+      aiTimeoutId = setTimeout(runAiDefenderShift, 420);
+    }
+  }
+
+  function finishTurnAfterMove(didTacticalOut = false) {
+    state.stepsLeft = 0;
+    state.visitedThisTurn.clear();
+
+    if (didTacticalOut) {
+      const nextTeam = state.turn === "blue" ? "red" : "blue";
+      setStatus(`Taktisches Aus! Zugrecht wechselt zu ${nextTeam === "blue" ? "Blau" : "Rot"}.`);
+      state.turn = nextTeam;
+      prepareRollPhase();
+      return;
+    }
+
+    startDefenderShift();
+  }
+
+  function completeDefenderShift() {
+    const defenderTeam = state.turn === "blue" ? "red" : "blue";
+    state.defenders[defenderTeam].forEach(d => { d.moved = false; });
+    state.selectedDefId = null;
+    state.turn = defenderTeam;
+
+    if (state.timeLeft > 0) {
+      setClockRunning(true);
+    }
+    prepareRollPhase();
+  }
+
+  function rollDice() {
+    if (state.phase !== "roll" && state.phase !== "golden_goal") return;
+    if (state.stepsLeft > 0) return;
+
+    const val = Math.floor(Math.random() * 6) + 1;
+    state.dice = val;
+    state.stepsLeft = val;
+    state.visitedThisTurn = new Set([keyOf(state.ball.r, state.ball.c)]);
+    if (state.phase !== "golden_goal") {
+      state.phase = "move";
+    }
+
+    if (state.timeLeft > 0) {
+      setClockRunning(true);
+    }
+
+    const validMoves = getValidBallMoves();
+    if (validMoves.length === 0) {
+      setStatus(`Wurf ${val}: kein Feld frei – Zug endet.`);
+      updateHud();
+      renderBoard();
+      aiTimeoutId = setTimeout(() => finishTurnAfterMove(false), 500);
+      return;
+    }
+
+    setStatus(`${state.turn === "blue" ? "Blau" : "Rot"} würfelt ${val}: Ziehe ${val} Felder (vor, links, rechts).`);
+    updateHud();
+    renderBoard();
+  }
+
+  function stepBallTo(r, c) {
+    const valid = getValidBallMoves().some(m => m.r === r && m.c === c);
+    if (!valid) return;
+
+    state.ball = { r, c };
+    state.stepsLeft -= 1;
+    state.visitedThisTurn.add(keyOf(r, c));
+
+    if (state.turn === "blue" && r === GOAL_RED.r && c === GOAL_RED.c) {
+      handleGoalScored("blue");
+      return;
+    }
+    if (state.turn === "red" && r === GOAL_BLUE.r && c === GOAL_BLUE.c) {
+      handleGoalScored("red");
+      return;
+    }
+
+    if (state.stepsLeft <= 0) {
+      finishTurnAfterMove(false);
+      return;
+    }
+
+    if (getValidBallMoves().length === 0) {
+      setStatus("Kein weiterer Schritt möglich – Zug endet.");
+      updateHud();
+      renderBoard();
+      aiTimeoutId = setTimeout(() => finishTurnAfterMove(false), 350);
+      return;
+    }
+
+    updateHud();
+    renderBoard();
+
+    if (state.mode === "pve" && state.turn === "red") {
+      aiTimeoutId = setTimeout(runAiBallStep, 220);
+    }
+  }
+
+  function handleSetupClick(r, c) {
+    if (!canPlaceDefenderAt(r, c)) {
+      if (!isReservedCell(r, c) && !getDefenderAt(r, c) && violatesWallRule(r, c)) {
+        setStatus("Mauerverbot: Zwischen Abwehrspielern muss mind. 1 Feld Abstand bleiben!");
+      }
+      return;
+    }
+
+    if (state.phase === "setup_blue") {
+      if (state.defenders.blue.length >= DEFENDERS_PER_TEAM) return;
+      state.defenders.blue.push({
+        id: `b${state.defenders.blue.length + 1}`,
+        r,
+        c,
+        moved: false
+      });
+
+      if (state.defenders.blue.length === DEFENDERS_PER_TEAM) {
+        state.phase = "setup_red";
+        setStatus("Rot: Setze 6 Abwehrspieler auf das Feld.");
+        if (state.mode === "pve") {
+          aiTimeoutId = setTimeout(runAiSetup, 260);
+        }
+      } else {
+        setStatus(`Blau: Noch ${DEFENDERS_PER_TEAM - state.defenders.blue.length} Abwehrspieler.`);
+      }
+      updateHud();
+      renderBoard();
+      return;
+    }
+
+    if (state.phase === "setup_red") {
+      if (state.defenders.red.length >= DEFENDERS_PER_TEAM) return;
+      state.defenders.red.push({
+        id: `r${state.defenders.red.length + 1}`,
+        r,
+        c,
+        moved: false
+      });
+
+      if (state.defenders.red.length === DEFENDERS_PER_TEAM) {
+        state.phase = "roll";
+        state.turn = "blue";
+        setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
+      } else {
+        setStatus(`Rot: Noch ${DEFENDERS_PER_TEAM - state.defenders.red.length} Abwehrspieler.`);
+      }
+      updateHud();
+      renderBoard();
+    }
+  }
+
+  function handleShiftClick(r, c) {
+    const defenderTeam = state.turn === "blue" ? "red" : "blue";
+    if (state.mode === "pve" && defenderTeam === "red") return;
+
+    const hit = getDefenderAt(r, c);
+    if (hit && hit.team === defenderTeam && !hit.def.moved) {
+      state.selectedDefId = hit.def.id;
+      renderBoard();
+      return;
+    }
+
+    if (state.selectedDefId) {
+      const def = state.defenders[defenderTeam].find(d => d.id === state.selectedDefId);
+      if (def && !def.moved) {
+        const canMove = getValidDefenderTargets(def).some(t => t.r === r && t.c === c);
+        if (canMove) {
+          def.r = r;
+          def.c = c;
+          def.moved = true;
+          state.selectedDefId = null;
+          renderBoard();
+        }
+      }
+    }
+  }
+
+  function handleCellClick(r, c) {
+    if (state.phase === "setup_blue" || state.phase === "setup_red") {
+      handleSetupClick(r, c);
+      return;
+    }
+    if (state.phase === "shift_def") {
+      handleShiftClick(r, c);
+      return;
+    }
+    if (state.phase === "move" || state.phase === "golden_goal") {
+      if (state.mode === "pve" && state.turn === "red") return;
+      stepBallTo(r, c);
+    }
+  }
+
+  function runAiSetup() {
+    const byDiff = {
+      hobby:   [{ r: 1, c: 0 }, { r: 1, c: 3 }, { r: 1, c: 6 }, { r: 6, c: 0 }, { r: 6, c: 3 }, { r: 6, c: 6 }],
+      amateur: [{ r: 2, c: 1 }, { r: 2, c: 4 }, { r: 5, c: 2 }, { r: 5, c: 5 }, { r: 7, c: 1 }, { r: 7, c: 4 }],
+      profi:   [{ r: 2, c: 2 }, { r: 2, c: 5 }, { r: 5, c: 1 }, { r: 5, c: 4 }, { r: 7, c: 2 }, { r: 7, c: 5 }]
+    };
+    const preferred = byDiff[state.difficulty] || byDiff.amateur;
+
+    for (const pos of preferred) {
+      if (state.defenders.red.length >= DEFENDERS_PER_TEAM) break;
+      if (canPlaceDefenderAt(pos.r, pos.c)) {
+        state.defenders.red.push({
+          id: `r${state.defenders.red.length + 1}`,
+          r: pos.r,
+          c: pos.c,
+          moved: false
+        });
+      }
+    }
+
+    let rIdx = 0;
+    let cIdx = 0;
+    while (state.defenders.red.length < DEFENDERS_PER_TEAM) {
+      if (canPlaceDefenderAt(rIdx, cIdx)) {
+        state.defenders.red.push({
+          id: `r${state.defenders.red.length + 1}`,
+          r: rIdx,
+          c: cIdx,
+          moved: false
+        });
+      }
+      cIdx++;
+      if (cIdx >= COLS) { cIdx = 0; rIdx++; }
+    }
+
+    state.phase = "roll";
+    state.turn = "blue";
+    setStatus("Bereit! Blau beginnt – klicke auf „Würfeln“.");
+    updateHud();
+    renderBoard();
+  }
+
+  function runAiTurn() {
+    if (state.phase !== "roll" && state.phase !== "golden_goal") return;
+    if (state.turn !== "red") return;
+    rollDice();
+    if (state.phase === "move" || state.phase === "golden_goal") {
+      aiTimeoutId = setTimeout(runAiBallStep, 480);
+    }
+  }
+
+  function runAiBallStep() {
+    if ((state.phase !== "move" && state.phase !== "golden_goal") || state.turn !== "red") return;
+    const moves = getValidBallMoves();
+    if (moves.length === 0) {
+      finishTurnAfterMove(false);
+      return;
+    }
+
+    if (state.difficulty === "hobby") {
+      const pick = moves[Math.floor(Math.random() * moves.length)];
+      stepBallTo(pick.r, pick.c);
+    } else if (state.difficulty === "amateur") {
+      moves.sort((a, b) => (b.r - Math.abs(b.c - 3) * 0.4) - (a.r - Math.abs(a.c - 3) * 0.4));
+      const pool = moves.slice(0, Math.min(2, moves.length));
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      stepBallTo(pick.r, pick.c);
+    } else {
+      moves.sort((a, b) => {
+        const distA = Math.abs(GOAL_BLUE.r - a.r) + Math.abs(GOAL_BLUE.c - a.c);
+        const distB = Math.abs(GOAL_BLUE.r - b.r) + Math.abs(GOAL_BLUE.c - b.c);
+        if (distA !== distB) return distA - distB;
+        return Math.abs(a.c - 3) - Math.abs(b.c - 3);
+      });
+      stepBallTo(moves[0].r, moves[0].c);
+    }
+
+    if (state.stepsLeft > 0 && (state.phase === "move" || state.phase === "golden_goal") && state.turn === "red") {
+      aiTimeoutId = setTimeout(runAiBallStep, 440);
+    }
+  }
+
+  function runAiDefenderShift() {
+    if (state.phase !== "shift_def") return;
+    const defenderTeam = state.turn === "blue" ? "red" : "blue";
+    if (defenderTeam !== "red") return;
+
+    const defs = [...state.defenders.red];
+    if (state.difficulty === "profi") {
+      defs.sort((a, b) => {
+        const dA = Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c);
+        const dB = Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c);
+        return dA - dB;
+      });
+    }
+
+    for (const def of defs) {
+      const targets = getValidDefenderTargets(def);
+      if (targets.length === 0) continue;
+
+      if (state.difficulty === "hobby") {
+        if (Math.random() < 0.65) {
+          const pick = targets[Math.floor(Math.random() * targets.length)];
+          def.r = pick.r;
+          def.c = pick.c;
+          def.moved = true;
+        }
+      } else if (state.difficulty === "amateur") {
+        targets.sort((a, b) => {
+          const distA = Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c);
+          const distB = Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c);
+          return distA - distB;
+        });
+        def.r = targets[0].r;
+        def.c = targets[0].c;
+        def.moved = true;
+      } else {
+        targets.sort((a, b) => {
+          const scoreA =
+            (Math.abs(a.r - state.ball.r) + Math.abs(a.c - state.ball.c)) * 1.2 +
+            (Math.abs(a.r - GOAL_BLUE.r) + Math.abs(a.c - GOAL_BLUE.c)) * 0.8 +
+            Math.abs(a.c - 3) * 0.35;
+          const scoreB =
+            (Math.abs(b.r - state.ball.r) + Math.abs(b.c - state.ball.c)) * 1.2 +
+            (Math.abs(b.r - GOAL_BLUE.r) + Math.abs(b.c - GOAL_BLUE.c)) * 0.8 +
+            Math.abs(b.c - 3) * 0.35;
+          return scoreA - scoreB;
+        });
+        def.r = targets[0].r;
+        def.c = targets[0].c;
+        def.moved = true;
+      }
+    }
+    completeDefenderShift();
+  }
+
+  function updateHud() {
+    scoreBlueEl.textContent = state.score.blue;
+    scoreRedEl.textContent = state.score.red;
+    clockDisplay.textContent = formatClock(state.timeLeft);
+
+    const diffMap = { hobby: "Hobby", amateur: "Amateur", profi: "Profi" };
+    labelBlueEl.textContent = "Blau";
+    labelRedEl.textContent = state.mode === "pve" ? `KI (${diffMap[state.difficulty]})` : "Rot";
+    diffSelect.disabled = state.mode !== "pve";
+
+    boxBlueEl.classList.toggle("active", state.turn === "blue" && state.phase !== "finished");
+    boxRedEl.classList.toggle("active", state.turn === "red" && state.phase !== "finished");
+
+    if (state.phase === "setup_blue") {
+      phaseDisplay.textContent = `AUFSTELLUNG BLAU (${state.defenders.blue.length}/6)`;
+    } else if (state.phase === "setup_red") {
+      phaseDisplay.textContent = `AUFSTELLUNG ROT (${state.defenders.red.length}/6)`;
+    } else if (state.phase === "shift_def") {
+      const defTeam = state.turn === "blue" ? "ROT" : "BLAU";
+      phaseDisplay.textContent = `PAUSE · ABWEHR ${defTeam}`;
+    } else if (state.phase === "golden_goal") {
+      phaseDisplay.textContent = "GOLDEN GOAL";
+    } else if (state.phase === "finished") {
+      phaseDisplay.textContent = "ENDE";
+    } else {
+      phaseDisplay.textContent = state.turn === "blue" ? "ZUG BLAU" : "ZUG ROT";
+    }
+
+    diceValueEl.textContent = state.dice !== null ? String(state.dice) : "-";
+    stepsLeftEl.textContent = `${state.stepsLeft} Sch.`;
+
+    const isHumanTurn = !(state.mode === "pve" && state.turn === "red");
+    const canRoll = (state.phase === "roll" || state.phase === "golden_goal") && state.stepsLeft === 0 && isHumanTurn;
+    btnRoll.disabled = !canRoll;
+
+    const canOut = (state.phase === "move" || state.phase === "golden_goal") && isHumanTurn;
+    btnOut.disabled = !canOut;
+
+    const defenderTeam = state.turn === "blue" ? "red" : "blue";
+    const isHumanShift = state.phase === "shift_def" && !(state.mode === "pve" && defenderTeam === "red");
+    btnDoneMove.disabled = !isHumanShift;
+  }
+
+  function renderBoard() {
+    const validBallSet = new Set(getValidBallMoves().map(m => keyOf(m.r, m.c)));
+    const defenderTeam = state.turn === "blue" ? "red" : "blue";
+    const selectedDef = state.phase === "shift_def"
+      ? state.defenders[defenderTeam].find(d => d.id === state.selectedDefId)
+      : null;
+    const validShiftSet = new Set(
+      selectedDef ? getValidDefenderTargets(selectedDef).map(t => keyOf(t.r, t.c)) : []
+    );
+
+    const frag = document.createDocumentFragment();
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = document.createElement("div");
+        const isEven = (r + c) % 2 === 0;
+        cell.className = `cell ${isEven ? "even" : "odd"}`;
+        if (r === 4) cell.classList.add("midline");
+        if (r === GOAL_RED.r && c === GOAL_RED.c) cell.classList.add("goal-red");
+        if (r === GOAL_BLUE.r && c === GOAL_BLUE.c) cell.classList.add("goal-blue");
+
+        const k = keyOf(r, c);
+        if ((state.phase === "setup_blue" || state.phase === "setup_red") && canPlaceDefenderAt(r, c)) {
+          cell.classList.add("setup-target");
+        }
+        if (validBallSet.has(k)) {
+          cell.classList.add("valid-move");
+        }
+        if (validShiftSet.has(k)) {
+          cell.classList.add("def-target");
+        }
+
+        const defInfo = getDefenderAt(r, c);
+        if (defInfo) {
+          const piece = document.createElement("div");
+          piece.className = `defender ${defInfo.team}`;
+          if (defInfo.def.moved) piece.classList.add("moved");
+          piece.textContent = defInfo.team === "blue" ? "B" : "R";
+          if (state.phase === "shift_def" && defInfo.team === defenderTeam && !defInfo.def.moved) {
+            piece.style.cursor = "pointer";
+            piece.style.pointerEvents = "auto";
+          }
+          if (selectedDef && selectedDef.id === defInfo.def.id) {
+            cell.classList.add("selected-def");
+          }
+          cell.appendChild(piece);
+        }
+
+        if (state.ball.r === r && state.ball.c === c) {
+          const ballEl = document.createElement("span");
+          ballEl.className = "ball";
+          ballEl.textContent = "⚽";
+          cell.appendChild(ballEl);
+        }
+
+        cell.addEventListener("click", () => handleCellClick(r, c));
+        frag.appendChild(cell);
+      }
+    }
+
+    pitchEl.replaceChildren(frag);
+  }
+
+  btnRoll.addEventListener("click", rollDice);
+  btnOut.addEventListener("click", () => finishTurnAfterMove(true));
+  btnDoneMove.addEventListener("click", completeDefenderShift);
+  document.getElementById("btnReset").addEventListener("click", resetMatch);
+
+  modeSelect.addEventListener("change", resetMatch);
+  diffSelect.addEventListener("change", resetMatch);
+  timeSelect.addEventListener("change", resetMatch);
+
+  document.getElementById("btnRules").addEventListener("click", () => {
+    document.getElementById("rulesModal").classList.add("open");
+  });
+
+  document.getElementById("btnTable").addEventListener("click", () => {
+    renderStandings();
+    document.getElementById("tableModal").classList.add("open");
+  });
+
+  document.getElementById("btnImprint").addEventListener("click", () => {
+    document.getElementById("imprintModal").classList.add("open");
+  });
+
+  document.getElementById("btnClearTable").addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    renderStandings();
+  });
+
+  document.querySelectorAll("[data-close]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.getAttribute("data-close");
+      document.getElementById(id).classList.remove("open");
+    });
+  });
+
+  document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
+    backdrop.addEventListener("click", e => {
+      if (e.target === backdrop) backdrop.classList.remove("open");
+    });
+  });
+
+  resetMatch();
+})();
+</script>
+</body>
+</html>
